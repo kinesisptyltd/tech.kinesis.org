@@ -1,0 +1,34 @@
+title: The Kinesis Tech Blog
+tagline: Data down, actions up
+
+url: https://tech.kinesis.org
+baseurl: ""
+
+# Configuration
+permalink: pretty
+timezone: Australia/Sydney
+
+# Pagination
+paginate: 1
+
+# Conversion
+markdown:    redcarpet
+highlighter: rouge
+lsi:         false
+excerpt_separator: "\n\n"
+
+# Assets
+# We specify the directory for Jekyll so we can use @imports.
+sass:
+  sass_dir:          _sass
+  style:            :compressed
+
+# Authors
+company: Kinesis Pty Ltd
+authors:
+  name:              Mark Otto
+  url:               https://twitter.com/mdo
+  email:             markdotto@gmail.com
+
+# Plugins
+gems: [jekyll-paginate, jekyll-gist]
