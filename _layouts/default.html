@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
   {% include head.html %}
 
   <body>
@@ -16,12 +15,17 @@
         {{ content }}
       </main>
 
+      <hr />
+
       <footer class="footer">
         <small>
-          &copy; <time datetime="{{ site.time | date_to_xmlschema }}">{{ site.time | date: '%Y' }}</time> {{ site.company }}.
+          &copy; <a href="{{ site.company_page }}" title="Kinesis">{{ site.company }}</a> <time datetime="2007-01-01">2007</time> - <time datetime="{{ site.time | date_to_xmlschema }}">{{ site.time | date: '%Y' }}</time>
         </small>
       </footer>
     </div>
 
+    {% if site.github %}
+      {% include ga.html %}
+    {% endif %}
   </body>
 </html>

@@ -20,15 +20,45 @@ excerpt_separator: "\n\n"
 # Assets
 # We specify the directory for Jekyll so we can use @imports.
 sass:
-  sass_dir:          _sass
-  style:            :compressed
+  sass_dir: _sass
+  style: :compressed
+
+# Gravatar
+gravatar:
+  size: 30
+
+# Google Analytics
+google_analytics: UA-16204657-6
+
+collections:
+  docs:
+    output: true
 
 # Authors
 company: Kinesis Pty Ltd
+company_page: http://kinesis.org
 authors:
-  name:              Mark Otto
-  url:               https://twitter.com/mdo
-  email:             markdotto@gmail.com
+  chris:
+    name: Christopher Chow
+    github: https://github.com/Soliah
+    twitter: https://twitter.com/Soliah
+    email: christopher.chow@kinesis.org
+  david:
+    name: David Nettle
+    github: https://github.com/icecoldmax
+    twitter: https://twitter.com/icecoldmax
+    email: david.nettle@kinesis.org
+  justin:
+    name: Justin Beltran
+    github: https://github.com/justindennisbeltran
+    email: justin.beltran@kinesis.org
+  james:
+    name: James Crisp
+    github: https://github.com/jcrispw
+    email: james.crisp@kinesis.org
 
 # Plugins
-gems: [jekyll-paginate, jekyll-gist]
+gems: [jekyll-paginate, jekyll-gist, jemoji]
+
+# Meta
+array: []

@@ -24,14 +24,32 @@
   margin-bottom: 1rem;
   margin-top: -.5rem;
   color: #9a9a9a;
-}
+  display: inline-block;
 
-.post-date {
-}
+  .post-tags {
+    color: #9a9a9a;
+    // font-style: italic;
+  }
 
-.post-tags {
-  color: #9a9a9a;
-  font-style: italic;
+  .post-authors {
+    display: inline-block;
+
+    .avatar {
+      display: inline-block;
+
+      img {
+        margin: 0;
+        margin-bottom: -.5rem;
+        display: inline-block;
+        -webkit-border-radius: 50%;
+        -moz-border-radius: 50%;
+        border-radius: 50%;
+      }
+      span {
+        // font-size: 80%;
+      }
+    }
+  }
 }
 
 // Related posts

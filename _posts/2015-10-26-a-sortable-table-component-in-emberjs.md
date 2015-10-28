@@ -1,7 +1,8 @@
 ---
 layout: post
 title: A sortable table component in Ember.js
-tags: emberjs
+tags: emberjs jsonapi
+authors: chris justin
 ---
 
 At Kinesis we deal with a lot of tabular data, and in the past have leaned on

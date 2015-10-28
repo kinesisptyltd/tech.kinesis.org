@@ -2,16 +2,31 @@
 layout: default
 ---
 
+{% assign authors = page.authors | split: " " %}
+
 <article class="post">
   <h1 class="post-title">{{ page.title }}</h1>
-    <div class="post-meta">
-      <time datetime="{{ page.date | date_to_xmlschema }}" class="post-date">{{ page.date | date_to_string }}</time>
-      <span class="post-tags">
-        {% if page.tags.size > 0 %}
-          {{ page.tags | array_to_sentence_string | prepend: '- ' }}
-        {% endif %}
-      </span>
+
+  <div class="post-meta">
+    <time datetime="{{ page.date | date_to_xmlschema }}" class="post-date">{{ page.date | date_to_string }}</time>
+    <div class="post-authors">
+    {% for author in authors %}
+      <div class="avatar">
+        {{ site.authors[author].email | gravatar }}
+        <span>
+          <a href="{{ site.authors[author].github }}" title="GitHub">
+            {{ author }}
+          </a>
+        </span>
+      </div>
+    {% endfor %}
     </div>
+    <span class="post-tags">
+      {% if page.tags.size > 0 %}
+        {{ page.tags | array_to_sentence_string | prepend: 'in ' }}
+      {% endif %}
+    </span>
+  </div>
 
   {{ content }}
 </article>
