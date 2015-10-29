@@ -1,0 +1,8 @@
+# ~/.tmuxinator/blog.yml
+
+name: blog
+
+windows:
+  - editor:
+  - terminal:
+  - terminal: bundle exec jekyll s
