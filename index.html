@@ -15,19 +15,23 @@ title: Home
 
     <div class="post-meta">
       <time datetime="{{ post.date | date_to_xmlschema }}" class="post-date">{{ post.date | date_to_string }}</time>
-      <span class="post-tags">
-      {% if post.tags.size > 0 %}
-        {{ post.tags | array_to_sentence_string | prepend: '- ' }}
-      {% endif %}
-      </span>
       <div class="post-authors">
       {% for author in authors %}
         <div class="avatar">
           {{ site.authors[author].email | gravatar }}
-          <span><a href="{{ site.authors[author].github }}" title="GitHub">{{ author }}</a></span>
+          <span>
+            <a href="{{ site.authors[author].github }}" title="GitHub">
+              {{ author }}
+            </a>
+          </span>
         </div>
       {% endfor %}
       </div>
+      <span class="post-tags">
+        {% if post.tags.size > 0 %}
+          {{ post.tags | array_to_sentence_string | prepend: 'in ' }}
+        {% endif %}
+      </span>
     </div>
 
     {{ post.content }}
