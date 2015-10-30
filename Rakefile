@@ -11,6 +11,8 @@ GITHUB_REPONAME = "kinesisptyltd/tech.kinesis.org"
 namespace :site do
   desc "Generate blog files"
   task :generate do
+    ENV["JEKYLL_ENV"] = "production"
+
     Jekyll::Site.new(Jekyll.configuration({
       "source"      => ".",
       "destination" => "_site"
