@@ -1,6 +1,6 @@
 ---
 layout: post
-title: A tale of two Ember Data stores
+title: A migration path to JSON API with Ember Data from AMS
 tags: emberjs jsonapi active-model-serializers rails jsonapi-resources
 authors: david chris
 ---
@@ -33,7 +33,7 @@ data. This quickly becomes untenable with a large number of related models. We h
 a number of ways to work around these problems (e.g. action specific serializers) but
 none of them were satisfactory.
 
-With the release of Ember 2.0 and the transition to JSONAPI as the default adapter, we
+With the release of Ember 2.0 and the transition to JSON API as the default adapter, we
 were keen to take advantage of the features it provides. However, we quickly discovered that
 our app was too large and too complex to do a full transition in a timeframe that fit
 our business requirements. We basically wanted to change as many small, isolated bits as we could,
@@ -43,7 +43,7 @@ This wasn't a big deal for some parts of the site. For many of the Rails models
 it was as simple as deleting the serializer, and replacing it with a Resource class from
 the [jsonapi-resources](https://github.com/cerebris/jsonapi-resources) gem.
 But for one of our god models (`asset`) that has whole bunch of related records,
-we ended up having to maintain two Ember stores - AMS and JSONAPI - simultaneously, and handle
+we ended up having to maintain two Ember stores - AMS and JSON API - simultaneously, and handle
 the requests in the Rails controller differently depending on which store was requesting it.
 And since we couldn't find anyone else who'd tackled the same problem, we had to go it alone.
 
@@ -51,8 +51,8 @@ So, how did we do it?
 
 ## Ember
 
-First, we realised that we'd need a new store, as well as a new JSONAPI adapter and serializer for our `asset` model.
-The adapter and serializer would need to be the JSONAPI ones instead of the AMS ones:
+First, we realised that we'd need a new store, as well as a new JSON API adapter and serializer for our `asset` model.
+The adapter and serializer would need to be the JSON API ones instead of the AMS ones:
 
 ```javascript
 // app/adapters/jsonapi-asset.js
@@ -98,7 +98,7 @@ With these overridden methods, when we do a `store.query('asset')`,
 the store calls out to our above-mentioned `jsonapi-asset`
 adapter and serializer, but querying any other model falls through to the old AMS ones.
 
-Great! So we're now sending off JSONAPI requests, but we're not going to
+Great! So we're now sending off JSON API requests, but we're not going to
  be able to use this store until we inject it where it's needed.
 For that, we'll use a new initializer:
 
