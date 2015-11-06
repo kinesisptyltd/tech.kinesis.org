@@ -9,7 +9,7 @@ permalink: pretty
 timezone: Australia/Sydney
 
 # Pagination
-paginate: 1
+paginate: 2
 
 # Conversion
 markdown:    redcarpet
