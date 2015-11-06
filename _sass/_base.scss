@@ -19,14 +19,15 @@ html {
   font-size: 16px;
   line-height: 1.5;
 
-  @media (min-width: 38em) {
+  @media (min-width: 54em) {
     font-size: 18px;
   }
 }
 
 body {
   color: #515151;
-  background-color: #fff;
+  background-color: #E7EBEE;
+
   -webkit-text-size-adjust: 100%;
       -ms-text-size-adjust: 100%;
 }
