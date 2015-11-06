@@ -1,7 +1,7 @@
 ---
 layout: post
-title: Transitioning from Active Model Serializer to JSONAPI with Ember, Rails and jsonapi-resources
-tags: emberjs jsonapi activemodelserializer rails jsonapi-resources
+title: A tale of two Ember Data stores
+tags: emberjs jsonapi active-model-serializers rails jsonapi-resources
 authors: david chris
 ---
 
@@ -94,7 +94,7 @@ export default Store.extend({
 });
 ```
 
-With these patched methods, when we do a `store.query('asset')`,
+With these overridden methods, when we do a `store.query('asset')`,
 the store calls out to our above-mentioned `jsonapi-asset`
 adapter and serializer, but querying any other model falls through to the old AMS ones.
 
