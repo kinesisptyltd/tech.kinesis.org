@@ -129,3 +129,76 @@ export default {
 
 Now, `store` means the jsonapi-store in the `posts` route and controller,
 but in `controller:assets`, we have both `store` and `jsonapiStore`. Awesome!
+
+## Rails
+
+On the Rails side, we need an `asset` resource as per the gem instructions, but we also need
+the controller to be able to handle both AMS style and JSONAPI style requests.
+Usually with [jsonapi-resources](https://github.com/cerebris/jsonapi-resources), one can get away with
+just inheriting from the `JSONAPI::ResourceController`, but in our case we're going to need to mix in the functionality
+while still keeping the old methods around for the AMS style requests. Thankfully we can just `include JSONAPI::ActsAsResourceController` for that.
+
+We're also going to need a callback to check which kind of request we're receiving, and route to the correct handler.
+
+Lastly, we need to skip some of the gem callbacks that will prevent us from being able to use both kinds of requests.
+
+```ruby
+# app/controllers/assets_controller.rb
+
+class AssetsController < BaseController
+  include JSONAPI::ActsAsResourceController # mix in the functionality
+
+  before_action :route_to_jsonapi, if: :use_jsonapi?
+  skip_before_action :setup_request # we'll perform this manually if it's JSONAPI
+  skip_before_action :ensure_correct_media_type
+
+  def use_jsonapi?
+    # Ember sends different headers when using JSONAPI than with AMS,
+    # so we can use this fact to determine which kind of request we're receiving
+    request.content_type == JSONAPI::MEDIA_TYPE || request.headers["ACCEPT"] == JSONAPI::MEDIA_TYPE
+  end
+
+  def route_to_jsonapi
+    setup_request # do it manually and...
+    process_request_operations # let the gem take over control for JSONAPI
+    false
+  end
+
+  # rest of the methods (index, show etc.) here
+end
+```
+
+Also, don't forget to add the routes:
+
+```ruby
+  jsonapi_resources :assets do
+    jsonapi_relationships
+  end
+```
+
+Now any requests that come in with JSONAPI will be handled by the gem and go through the corresponding `JSONAPI::Resource`.
+AMS ones can still hit the regular index, show, or even custom methods.
+
+### Relationships in Rails
+
+Importantly, if you want to be able to use the really handy sideloading feature of JSONAPI, you'll need to make sure you create `JSONAPI::Resource`s for your related records that includes the relationship:
+
+```ruby
+class CommentResource < JSONAPI::Resource
+  attributes :body
+
+  has_one :post # <-- like this.
+end
+```
+
+Then, as long as you have the `jsonapi_relationships` in the route, you can use `include` to sideload records:
+
+```javascript
+this.jsonapiStore.query('comment', {
+  include: 'post'
+}).then((result) => {
+  // ...
+});
+```
+
+That should be all you need to maintain two simultaneous stores in Ember and Rails. Hopefully we haven't forgotten anything. If we have, feel free to ask a question or leave a comment.
