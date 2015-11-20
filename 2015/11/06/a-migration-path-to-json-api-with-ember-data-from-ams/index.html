@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8">
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>
+    
+      A migration path to JSON API with Ember Data from AMS &middot; The Kinesis Tech Blog
+    
+  </title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/styles.css">
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-precomposed.png">
+  <link rel="shortcut icon" href="/public/favicon.ico">
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/atom+xml" title="The Kinesis Tech Blog" href="/atom.xml">
+</head>
+
+
+  <body>
+    <div class="container content">
+      <header class="masthead">
+        <h3 class="masthead-title">
+          <a href="/" title="Home">The Kinesis Tech Blog</a>
+          <small>Data down, actions up</small>
+        </h3>
+      </header>
+
+      <main>
+        
+
+<article class="post">
+  <h1 class="post-title">A migration path to JSON API with Ember Data from AMS</h1>
+
+  <div class="post-meta">
+    <time datetime="2015-11-06T00:00:00+11:00" class="post-date">06 Nov 2015</time>
+    <div class="post-authors">
+    
+      <div class="avatar">
+        <img class="gravatar" src="http://www.gravatar.com/avatar/dcfeb5f9a32d4cad374e158be4ee9dcf?s=30"></img>
+        <span>
+          <a href="https://github.com/icecoldmax" title="GitHub">
+            david
+          </a>
+        </span>
+      </div>
+    
+      <div class="avatar">
+        <img class="gravatar" src="http://www.gravatar.com/avatar/419ea92a50d73f1fe95e6ad9df4a6f06?s=30"></img>
+        <span>
+          <a href="https://github.com/Soliah" title="GitHub">
+            chris
+          </a>
+        </span>
+      </div>
+    
+    </div>
+    <span class="post-tags">
+      
+        in emberjs, jsonapi, active-model-serializers, rails, and jsonapi-resources
+      
+    </span>
+  </div>
+
+  <p>We&#39;ve been using Ember.js for about a year now, and as is typical with Rails
+shops we began our journey with ActiveModelSerializers to drive our API.
+As our Ember application grew, we quickly discovered problems with the way AMS
+approaches serialization.</p>
+
+<p>Some of the issues we ran into with AMS are:</p>
+
+<ul>
+<li>Inability to handle requests for specific fields from the client. Eg. only
+return attributes a and b instead of a, b and c.</li>
+<li>Sideloading models is per serializer and when there is a large number of
+related models, you often end up overfetching data</li>
+</ul>
+
+<p>For example, given the following serializers...</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">PostSerializer</span> <span class="o">&lt;</span> <span class="no">ActiveModel</span><span class="o">::</span><span class="no">Serializer</span>
+  <span class="n">has_many</span> <span class="ss">:comments</span><span class="p">,</span> <span class="ss">embed_in_root: </span><span class="kp">true</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">CommentSerializer</span> <span class="o">&lt;</span> <span class="no">ActiveModel</span><span class="o">::</span><span class="no">Serializer</span>
+<span class="k">end</span>
+</code></pre></div>
+<p>...we would not be able to only get the posts without always returning the comment
+data. This quickly becomes untenable with a large number of related models. We had
+a number of ways to work around these problems (e.g. action specific serializers) but
+none of them were satisfactory.</p>
+
+<p>With the release of Ember 2.0 and the transition to JSON API as the default adapter, we
+were keen to take advantage of the features it provides. However, we quickly discovered that
+our app was too large and too complex to do a full transition in a timeframe that fit
+our business requirements. We basically wanted to change as many small, isolated bits as we could,
+but still leave some of the meatier bits alone until we have more time to tackle them.</p>
+
+<p>This wasn&#39;t a big deal for some parts of the site. For many of the Rails models
+it was as simple as deleting the serializer, and replacing it with a Resource class from
+the <a href="https://github.com/cerebris/jsonapi-resources">jsonapi-resources</a> gem.
+But for one of our god models (<code>asset</code>) that has whole bunch of related records,
+we ended up having to maintain two Ember stores - AMS and JSON API - simultaneously, and handle
+the requests in the Rails controller differently depending on which store was requesting it.
+And since we couldn&#39;t find anyone else who&#39;d tackled the same problem, we had to go it alone.</p>
+
+<p>So, how did we do it?</p>
+
+<h2>Ember</h2>
+
+<p>First, we realised that we&#39;d need a new store, as well as a new JSON API adapter and serializer for our <code>asset</code> model.
+The adapter and serializer would need to be the JSON API ones instead of the AMS ones:</p>
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="c1">// app/adapters/jsonapi-asset.js</span>
+<span class="kr">import</span> <span class="nx">Ember</span> <span class="nx">from</span> <span class="s1">'ember'</span><span class="p">;</span>
+<span class="kr">import</span> <span class="nx">DS</span> <span class="nx">from</span> <span class="s1">'ember-data'</span><span class="p">;</span>
+
+<span class="kr">export</span> <span class="k">default</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">JSONAPIAdapter</span><span class="p">;</span>
+</code></pre></div><div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="c1">// app/serializers/jsonapi-asset.js</span>
+<span class="kr">import</span> <span class="nx">Ember</span> <span class="nx">from</span> <span class="s1">'ember'</span><span class="p">;</span>
+<span class="kr">import</span> <span class="nx">DS</span> <span class="nx">from</span> <span class="s1">'ember-data'</span><span class="p">;</span>
+
+<span class="kr">export</span> <span class="k">default</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">JSONAPISerializer</span><span class="p">;</span>
+</code></pre></div>
+<p>The interesting part is the new store. It would still need basic store functionality,
+but would need to call out to our new adapter and serializer. This is where the magic happens:</p>
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="c1">// app/services/jsonapi-store.js</span>
+<span class="kr">import</span> <span class="nx">Store</span> <span class="nx">from</span> <span class="s1">'integrated/services/store'</span><span class="p">;</span> <span class="c1">// the regular DS.Store</span>
+
+<span class="kr">export</span> <span class="k">default</span> <span class="nx">Store</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+  <span class="nx">lookupAdapter</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">name</span> <span class="o">===</span> <span class="s1">'asset'</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">_super</span><span class="p">(</span><span class="err">`</span><span class="nx">jsonapi</span><span class="o">-</span><span class="nx">$</span><span class="p">{</span><span class="nx">name</span><span class="p">}</span><span class="err">`</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">_super</span><span class="p">(</span><span class="nx">name</span><span class="p">);</span>
+  <span class="p">},</span>
+
+  <span class="nx">lookupSerializer</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span> <span class="nx">fallbacks</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">name</span> <span class="o">===</span> <span class="s1">'asset'</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">_super</span><span class="p">(</span><span class="err">`</span><span class="nx">jsonapi</span><span class="o">-</span><span class="nx">$</span><span class="p">{</span><span class="nx">name</span><span class="p">}</span><span class="err">`</span><span class="p">,</span> <span class="nx">fallbacks</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">_super</span><span class="p">(...</span><span class="nx">arguments</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>With these overridden methods, when we do a <code>store.query(&#39;asset&#39;)</code>,
+the store calls out to our above-mentioned <code>jsonapi-asset</code>
+adapter and serializer, but querying any other model falls through to the old AMS ones.</p>
+
+<p>Great! <img class='emoji' title=':sparkles:' alt=':sparkles:' src='https://assets.github.com/images/icons/emoji/unicode/2728.png' height='20' width='20' align='absmiddle' /> So we&#39;re now sending off JSON API requests, but we&#39;re not going to
+ be able to use this store until we inject it where it&#39;s needed.
+For that, we&#39;ll use a new initializer:</p>
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="c1">// app/initializers/jsonapi-store.js</span>
+<span class="kr">export</span> <span class="k">default</span> <span class="p">{</span>
+  <span class="na">name</span><span class="p">:</span> <span class="s1">'jsonapi-store'</span><span class="p">,</span>
+  <span class="na">after</span><span class="p">:</span> <span class="s1">'store'</span><span class="p">,</span>
+
+  <span class="nx">initialize</span><span class="p">(</span><span class="nx">registry</span><span class="p">,</span> <span class="nx">application</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// any paths where you want 'store' to refer to the new jsonapi-store</span>
+    <span class="kr">const</span> <span class="nx">paths</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="s1">'route:posts'</span><span class="p">,</span>
+      <span class="s1">'controller:posts'</span>
+    <span class="p">];</span>
+
+    <span class="c1">// inject jsonapi-store as 'store'</span>
+    <span class="nx">paths</span><span class="p">.</span><span class="nx">forEach</span><span class="p">((</span><span class="nx">path</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+      <span class="nx">application</span><span class="p">.</span><span class="nx">inject</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="s1">'store'</span><span class="p">,</span> <span class="s1">'service:jsonapi-store'</span><span class="p">);</span>
+    <span class="p">});</span>
+
+
+    <span class="c1">// in this case, we're injecting jsonapi-store with a different name</span>
+    <span class="nx">application</span><span class="p">.</span><span class="nx">inject</span><span class="p">(</span><span class="s1">'controller:assets'</span><span class="p">,</span> <span class="s1">'jsonapiStore'</span><span class="p">,</span> <span class="s1">'service:jsonapi-store'</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div>
+<p>Now, <code>store</code> means the jsonapi-store in the <code>posts</code> route and controller,
+but in <code>controller:assets</code>, we have both <code>store</code> and <code>jsonapiStore</code>. Awesome!</p>
+
+<h2>Rails</h2>
+
+<p>On the Rails side, we need an <code>asset</code> resource as per the gem instructions, but we also need
+the controller to be able to handle both AMS style and JSONAPI style requests.
+Usually with <a href="https://github.com/cerebris/jsonapi-resources">jsonapi-resources</a>, one can get away with
+just inheriting from the <code>JSONAPI::ResourceController</code>, but in our case we&#39;re going to need to mix in the functionality
+while still keeping the old methods around for the AMS style requests. Thankfully we can just <code>include JSONAPI::ActsAsResourceController</code> for that.</p>
+
+<p>We&#39;re also going to need a callback to check which kind of request we&#39;re receiving, and route to the correct handler.</p>
+
+<p>Lastly, we need to skip some of the gem callbacks that will prevent us from being able to use both kinds of requests.</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="c1"># app/controllers/assets_controller.rb</span>
+
+<span class="k">class</span> <span class="nc">AssetsController</span> <span class="o">&lt;</span> <span class="no">BaseController</span>
+  <span class="kp">include</span> <span class="no">JSONAPI</span><span class="o">::</span><span class="no">ActsAsResourceController</span> <span class="c1"># mix in the functionality</span>
+
+  <span class="n">before_action</span> <span class="ss">:route_to_jsonapi</span><span class="p">,</span> <span class="ss">if: :use_jsonapi?</span>
+  <span class="n">skip_before_action</span> <span class="ss">:setup_request</span> <span class="c1"># we'll perform this manually if it's JSONAPI</span>
+  <span class="n">skip_before_action</span> <span class="ss">:ensure_correct_media_type</span>
+
+  <span class="k">def</span> <span class="nf">use_jsonapi?</span>
+    <span class="c1"># Ember sends different headers when using JSONAPI than with AMS,</span>
+    <span class="c1"># so we can use this fact to determine which kind of request we're receiving</span>
+    <span class="n">request</span><span class="p">.</span><span class="nf">content_type</span> <span class="o">==</span> <span class="no">JSONAPI</span><span class="o">::</span><span class="no">MEDIA_TYPE</span> <span class="o">||</span> <span class="n">request</span><span class="p">.</span><span class="nf">headers</span><span class="p">[</span><span class="s2">"ACCEPT"</span><span class="p">]</span> <span class="o">==</span> <span class="no">JSONAPI</span><span class="o">::</span><span class="no">MEDIA_TYPE</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">route_to_jsonapi</span>
+    <span class="n">setup_request</span> <span class="c1"># do it manually and...</span>
+    <span class="n">process_request_operations</span> <span class="c1"># let the gem take over control for JSONAPI</span>
+    <span class="kp">false</span>
+  <span class="k">end</span>
+
+  <span class="c1"># rest of the methods (index, show etc.) here</span>
+<span class="k">end</span>
+</code></pre></div>
+<p>Also, don&#39;t forget to add the routes:</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby">  <span class="n">jsonapi_resources</span> <span class="ss">:assets</span> <span class="k">do</span>
+    <span class="n">jsonapi_relationships</span>
+  <span class="k">end</span>
+</code></pre></div>
+<p>Now any requests that come in with JSONAPI will be handled by the gem and go through the corresponding <code>JSONAPI::Resource</code>.
+AMS ones can still hit the regular index, show, or even custom methods.</p>
+
+<h3>Relationships in Rails</h3>
+
+<p>Importantly, if you want to be able to use the really handy sideloading feature of JSONAPI, you&#39;ll need to make sure you create <code>JSONAPI::Resource</code>s for your related records that includes the relationship:</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">CommentResource</span> <span class="o">&lt;</span> <span class="no">JSONAPI</span><span class="o">::</span><span class="no">Resource</span>
+  <span class="n">attributes</span> <span class="ss">:body</span>
+
+  <span class="n">has_one</span> <span class="ss">:post</span> <span class="c1"># &lt;-- like this.</span>
+<span class="k">end</span>
+</code></pre></div>
+<p>Then, as long as you have the <code>jsonapi_relationships</code> in the route, you can use <code>include</code> to sideload records:</p>
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="k">this</span><span class="p">.</span><span class="nx">jsonapiStore</span><span class="p">.</span><span class="nx">query</span><span class="p">(</span><span class="s1">'comment'</span><span class="p">,</span> <span class="p">{</span>
+  <span class="na">include</span><span class="p">:</span> <span class="s1">'post'</span>
+<span class="p">}).</span><span class="nx">then</span><span class="p">((</span><span class="nx">result</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="c1">// ...</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>That should be all you need to maintain two simultaneous stores in Ember and Rails. Hopefully we haven&#39;t forgotten anything. If we have, feel free to ask a question or leave a comment.</p>
+
+</article>
+
+<hr>
+
+  <div id="disqus_thread"></div>
+<script>
+/**
+* RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+* LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables
+*/
+var disqus_config = function () {
+  this.page.url = "http://tech.kinesis.org/2015/11/06/a-migration-path-to-json-api-with-ember-data-from-ams/"; // Replace PAGE_URL with your page's canonical URL variable
+  this.page.identifier = "http://tech.kinesis.org/2015/11/06/a-migration-path-to-json-api-with-ember-data-from-ams/"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+(function() { // DON'T EDIT BELOW THIS LINE
+var d = document, s = d.createElement('script');
+
+s.src = '//kinesis-techblog.disqus.com/embed.js';
+
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+      </main>
+
+      <footer class="footer">
+        <small>
+          &copy; <a href="http://kinesis.org" title="Kinesis">Kinesis Pty Ltd</a> <time datetime="2007-01-01">2007</time> - <time datetime="2015-11-21T10:39:47+11:00">2015</time>
+        </small>
+      </footer>
+    </div>
+
+    
+      <!-- Google Analytics Tracking code -->
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-16204657-6']);
+  _gaq.push(['_trackPageview']);
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+    
+  </body>
+</html>
