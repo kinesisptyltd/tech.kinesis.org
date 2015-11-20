@@ -98,7 +98,7 @@ With these overridden methods, when we do a `store.query('asset')`,
 the store calls out to our above-mentioned `jsonapi-asset`
 adapter and serializer, but querying any other model falls through to the old AMS ones.
 
-Great! So we're now sending off JSON API requests, but we're not going to
+Great! :sparkles: So we're now sending off JSON API requests, but we're not going to
  be able to use this store until we inject it where it's needed.
 For that, we'll use a new initializer:
 
